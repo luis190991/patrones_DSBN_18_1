@@ -1,7 +1,10 @@
+
 package arquitectonicos.dao.factories.implementations.postgresql;
 
 import arquitectonicos.dao.conecctions.Conexion;
-import arquitectonicos.dao.models.Region;
+import arquitectonicos.dao.factories.interfaces.*;
+import arquitectonicos.dao.factories.interfaces.RegionDao;
+import arquitectonicos.dao.models.Country;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -10,15 +13,23 @@ import java.util.List;
 /**
  * Created by luis on 23/03/18.
  */
-public class RegionDao implements arquitectonicos.dao.factories.interfaces.RegionDao{
+public class CountryDao implements arquitectonicos.dao.factories.interfaces.CountryDao{
+
+    private arquitectonicos.dao.factories.interfaces.RegionDao regionDao;
+
+    public CountryDao(RegionDao regionDao) {
+        this.regionDao = regionDao;
+    }
+
     @Override
-    public void create(Region obj) {
+    public void create(Country obj) {
         try {
             Conexion conexion = Conexion.getInstance();
-            PreparedStatement ps = conexion.getConn().prepareStatement(Region.INSERT);
+            PreparedStatement ps = conexion.getConn().prepareStatement(Country.INSERT);
             Integer i =1;
             ps.setLong(i++, obj.getId());
             ps.setString(i++, obj.getName());
+            ps.setLong(i++, obj.getRegion().getId());
             ps.executeUpdate();
         } catch (ClassNotFoundException | SQLException e) {
 
@@ -26,30 +37,30 @@ public class RegionDao implements arquitectonicos.dao.factories.interfaces.Regio
     }
 
     @Override
-    public List<Region> read(String criteria) {
-        List<Region> regiones = new ArrayList<>();
+    public List<Country> read(String criteria) {
+        List<Country> paises = new ArrayList<>();
         try {
             Conexion conexion = Conexion.getInstance();
             Statement st = conexion.getConn().createStatement();
-            ResultSet rs = st.executeQuery(String.format("%s %s",Region.Q_ALL, criteria));
+            ResultSet rs = st.executeQuery(String.format("%s %s",Country.Q_ALL, criteria));
             while(rs.next()){
-                regiones.add(makeRegion(rs));
+                paises.add(makeCountry(rs));
             }
         }catch (ClassNotFoundException | SQLException ex){
 
         }
-        return regiones;
+        return paises;
     }
 
     @Override
-    public Region read(Long id) {
-        Region region = null;
+    public Country read(Long id) {
+        Country region = null;
         try {
             Connection conexion = Conexion.getInstance().getConn();
             Statement st = conexion.createStatement();
-            ResultSet rs = st.executeQuery(String.format("%s %s",Region.Q_BY_ID, id));
+            ResultSet rs = st.executeQuery(String.format("%s %s",Country.Q_BY_ID, id));
             if(rs.next()){
-                region = makeRegion(rs);
+                region = makeCountry(rs);
             }
         }catch (ClassNotFoundException | SQLException ex){
 
@@ -58,14 +69,15 @@ public class RegionDao implements arquitectonicos.dao.factories.interfaces.Regio
     }
 
     @Override
-    public void update(Region obj) {
+    public void update(Country obj) {
         try {
             Conexion conexion = Conexion.getInstance();
             PreparedStatement ps = conexion.getConn()
-                    .prepareStatement(String.format("%s %s",Region.UPDATE, obj.getId()));
+                    .prepareStatement(String.format("%s %s",Country.UPDATE, obj.getId()));
             Integer i =1;
             ps.setLong(i++, obj.getId());
             ps.setString(i++, obj.getName());
+            ps.setLong(i++, obj.getRegion().getId());
             ps.executeUpdate();
         } catch (ClassNotFoundException | SQLException e) {
 
@@ -77,7 +89,7 @@ public class RegionDao implements arquitectonicos.dao.factories.interfaces.Regio
         try {
             Conexion conexion = Conexion.getInstance();
             PreparedStatement ps = conexion.getConn()
-                    .prepareStatement(Region.DELETE);
+                    .prepareStatement(Country.DELETE);
             Integer i =1;
             ps.setLong(i++, id);
             ps.executeUpdate();
@@ -86,11 +98,21 @@ public class RegionDao implements arquitectonicos.dao.factories.interfaces.Regio
         }
     }
 
-    private Region makeRegion(ResultSet rs) throws SQLException {
-        Region region = new Region();
+    private Country makeCountry(ResultSet rs) throws SQLException {
+        Country  country = new Country();
         Integer i = 1;
-        region.setId(rs.getLong(i++));
-        region.setName(rs.getString(i++));
-        return region;
+        country.setId(rs.getLong(i++));
+        country.setName(rs.getString(i++));
+        Long regionId = rs.getLong(i++);
+        country.setRegion(regionDao.read(regionId));
+        return country;
+    }
+
+    public RegionDao getRegionDao() {
+        return regionDao;
+    }
+
+    public void setRegionDao(RegionDao regionDao) {
+        this.regionDao = regionDao;
     }
 }
